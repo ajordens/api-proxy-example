@@ -1,5 +1,0 @@
-proxies:
-  - id: flickr
-    uri: https://api.flickr.com
-    methods:
-      - GET
