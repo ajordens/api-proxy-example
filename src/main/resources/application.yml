@@ -1,0 +1,6 @@
+proxies:
+  - id: flickr
+    uri: https://api.flickr.com
+    skipHostnameVerification: false
+    methods:
+      - GET
