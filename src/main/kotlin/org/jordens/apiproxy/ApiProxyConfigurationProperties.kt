@@ -16,12 +16,39 @@
 
 package org.jordens.apiproxy
 
+import com.squareup.okhttp.OkHttpClient
+import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.ConfigurationProperties
-import java.net.URI
-import java.net.URL
+import javax.annotation.PostConstruct
 
 @ConfigurationProperties
 data class ApiProxyConfigurationProperties(var proxies: List<ProxyConfig> = mutableListOf()) {
+    @PostConstruct
+    fun postConstruct() {
+        for (proxy in proxies) {
+            // initialize the `okHttpClient` for each proxy
+            proxy.init()
+        }
+    }
 }
 
-data class ProxyConfig(var id: String = "", var uri: String = "", var methods: List<String> = mutableListOf())
+data class ProxyConfig(var id: String = "",
+                       var uri: String = "",
+                       var skipHostnameVerification: Boolean = false,
+                       var methods: List<String> = mutableListOf()) {
+
+    companion object {
+        val logger = LoggerFactory.getLogger(OkHttpClient::class.java)
+    }
+
+    var okHttpClient = OkHttpClient()
+
+    fun init() {
+        if (skipHostnameVerification) {
+            this.okHttpClient = okHttpClient.setHostnameVerifier({ hostname, _ ->
+                logger.warn("Skipping hostname verification on request to $hostname (id: $id)")
+                true
+            })
+        }
+    }
+}

@@ -16,13 +16,11 @@
 
 package org.jordens.apiproxy
 
-import com.squareup.okhttp.OkHttpClient
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.squareup.okhttp.Request
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.HandlerMapping
-import java.net.URI
-import java.net.URL
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -31,7 +29,8 @@ import javax.servlet.http.HttpServletResponse
 class ApiProxyController(val apiProxyConfigurationProperties: ApiProxyConfigurationProperties) {
     @GetMapping(value = "/{proxy}/**")
     fun get(@PathVariable(value = "proxy") proxy: String,
-            httpServletRequest: HttpServletRequest) : GenericResponse {
+            @RequestParam requestParams: Map<String, String>,
+            httpServletRequest: HttpServletRequest): GenericResponse {
 
         val proxyConfig = apiProxyConfigurationProperties
                 .proxies
@@ -40,20 +39,27 @@ class ApiProxyController(val apiProxyConfigurationProperties: ApiProxyConfigurat
         val proxyPath = httpServletRequest
                 .getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE)
                 .toString()
-                .substringAfter("/proxies/$proxy/")
+                .substringAfter("/proxies/$proxy")
 
-        val okHttpClient = OkHttpClient()
-        val proxiedUrl = proxyConfig.uri + "/" + proxyPath
-        val response = okHttpClient.newCall(Request.Builder().url(proxiedUrl).build()).execute()
+        val proxiedUrlBuilder = Request.Builder().url(proxyConfig.uri + proxyPath).build().httpUrl().newBuilder()
+        for ((key, value) in requestParams) {
+            proxiedUrlBuilder.addQueryParameter(key, value)
+        }
+        val proxiedUrl = proxiedUrlBuilder.build()
+
+        val response = proxyConfig.okHttpClient.newCall(
+                Request.Builder().url(proxiedUrl).build()
+        ).execute()
 
         return GenericResponse.ok(mapOf(
-                Pair("proxiedUrl", proxiedUrl),
+                Pair("proxiedUrl", proxiedUrl.url()),
                 Pair("response", response.body().string()),
                 Pair("responseContentType", response.header("Content-type"))
         ))
     }
 }
 
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 data class GenericResponse(val status: String,
                            val code: Int,
                            val messages: List<String>,
@@ -65,7 +71,7 @@ data class GenericResponse(val status: String,
     }
 }
 
-class NotFoundException(msg: String? = null, cause: Throwable? = null): Exception(msg, cause)
+class NotFoundException(msg: String? = null, cause: Throwable? = null) : Exception(msg, cause)
 
 @ControllerAdvice
 class ExceptionHandlers {

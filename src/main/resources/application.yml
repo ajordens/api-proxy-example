@@ -1,6 +1,10 @@
 proxies:
-  - id: flickr
+  - id: flickr                          # docs @ https://www.flickr.com/services/feeds/docs/photos_public/
     uri: https://api.flickr.com
-    skipHostnameVerification: false
+    methods:
+      - GET
+  - id: flickrUnsecure
+    uri: https://api.flickr.com
+    skipHostnameVerification: true
     methods:
       - GET
