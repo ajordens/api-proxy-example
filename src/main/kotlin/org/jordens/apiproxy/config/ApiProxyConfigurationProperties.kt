@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-package org.jordens.apiproxy
+package org.jordens.apiproxy.config
 
 import com.squareup.okhttp.OkHttpClient
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.ConfigurationProperties
+import java.io.File
 import javax.annotation.PostConstruct
+import javax.net.ssl.KeyManagerFactory
+import java.security.KeyStore
+import javax.net.ssl.SSLContext
 
 @ConfigurationProperties
 data class ApiProxyConfigurationProperties(var proxies: List<ProxyConfig> = mutableListOf()) {
@@ -35,6 +39,9 @@ data class ApiProxyConfigurationProperties(var proxies: List<ProxyConfig> = muta
 data class ProxyConfig(var id: String = "",
                        var uri: String = "",
                        var skipHostnameVerification: Boolean = false,
+                       var keyStore: String = "",
+                       var keyStorePassword: String = "",
+                       var keyStorePasswordFile: String = "",
                        var methods: List<String> = mutableListOf()) {
 
     companion object {
@@ -49,6 +56,31 @@ data class ProxyConfig(var id: String = "",
                 logger.warn("Skipping hostname verification on request to $hostname (id: $id)")
                 true
             })
+        }
+
+        if (!keyStore.isNullOrEmpty()) {
+            val keyStorePassword = if (!keyStorePassword.isNullOrEmpty()) {
+                keyStorePassword
+            } else if (!keyStorePasswordFile.isNullOrEmpty()) {
+                File(keyStorePasswordFile).readText()
+            } else {
+                throw IllegalStateException("No `keystorePassword` or `keyStorePasswordFile` specified (id: $id)")
+            }
+
+            val jksKeyStore = KeyStore.getInstance("JKS")
+
+            File(this.keyStore).inputStream().use {
+                jksKeyStore.load(it, keyStorePassword.toCharArray())
+            }
+
+            val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+            kmf.init(jksKeyStore, keyStorePassword.toCharArray());
+
+            val keyManagers = kmf.keyManagers
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(keyManagers, null, null);
+
+            this.okHttpClient = okHttpClient.setSslSocketFactory(sslContext.socketFactory)
         }
     }
 }

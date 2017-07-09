@@ -16,13 +16,12 @@
 
 package org.jordens.apiproxy
 
+import org.jordens.apiproxy.config.ApiProxyConfiguration
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.annotation.Import
 
-@EnableConfigurationProperties(
-        ApiProxyConfigurationProperties::class
-)
+@Import(ApiProxyConfiguration::class)
 @SpringBootApplication
 class ApiProxyApplication
 

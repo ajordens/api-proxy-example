@@ -18,6 +18,8 @@ package org.jordens.apiproxy
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.squareup.okhttp.Request
+import org.jordens.apiproxy.config.ApiProxyConfigurationProperties
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.HandlerMapping
@@ -75,8 +77,18 @@ class NotFoundException(msg: String? = null, cause: Throwable? = null) : Excepti
 
 @ControllerAdvice
 class ExceptionHandlers {
+    companion object {
+        val logger = LoggerFactory.getLogger(ExceptionHandlers::class.java)
+    }
+
     @ExceptionHandler(NotFoundException::class)
-    fun handleNotFoundException(ex: Throwable, response: HttpServletResponse) {
+    fun handleNotFoundException(ex: Throwable, response: HttpServletResponse, request: HttpServletRequest) {
         response.sendError(HttpStatus.NOT_FOUND.value(), ex.message)
+    }
+
+    @ExceptionHandler(Exception::class)
+    fun handleException(ex: Throwable, response: HttpServletResponse, request: HttpServletRequest) {
+        logger.error("Internal Server Error", ex)
+        response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.message)
     }
 }

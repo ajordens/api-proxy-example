@@ -3,8 +3,14 @@ proxies:
     uri: https://api.flickr.com
     methods:
       - GET
-  - id: flickrUnsecure
+  - id: flickr-unsecure
     uri: https://api.flickr.com
     skipHostnameVerification: true
     methods:
       - GET
+  - id: spinnaker
+    uri: https://api.spinnaker:7103
+    keyStore: /path/to/my/keystore.jks
+    keyStorePasswordFile: /path/to/my/password.txt
+  - id: spinnaker-invalid
+    uri: https://api.spinnaker:7103
